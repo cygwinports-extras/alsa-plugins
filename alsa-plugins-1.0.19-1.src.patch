@@ -1,0 +1,124 @@
+--- origsrc/alsa-plugins-1.0.19/a52/pcm_a52.c	2009-01-19 05:17:21.000000000 -0600
++++ src/alsa-plugins-1.0.19/a52/pcm_a52.c	2009-03-11 22:55:25.242875000 -0500
+@@ -316,13 +316,13 @@ static int a52_hw_params(snd_pcm_ioplug_
+ 			return err;
+ 	}
+ 	period_size = io->period_size;
+-	if ((err = snd_pcm_hw_params_set_period_size_near(rec->slave, rec->hw_params,
++	if ((err = __snd_pcm_hw_params_set_period_size_near(rec->slave, rec->hw_params,
+ 							  &period_size, NULL)) < 0) {
+ 		SNDERR("Cannot set slave period size %ld", period_size);
+ 		return err;
+ 	}
+ 	buffer_size = io->buffer_size;
+-	if ((err = snd_pcm_hw_params_set_buffer_size_near(rec->slave, rec->hw_params,
++	if ((err = __snd_pcm_hw_params_set_buffer_size_near(rec->slave, rec->hw_params,
+ 							  &buffer_size)) < 0) {
+ 		SNDERR("Cannot set slave buffer size %ld", buffer_size);
+ 		return err;
+@@ -361,8 +361,8 @@ static int a52_sw_params(snd_pcm_ioplug_
+ 	snd_pcm_uframes_t avail_min, start_threshold;
+ 	int len;
+ 
+-	snd_pcm_sw_params_get_avail_min(params, &avail_min);
+-	snd_pcm_sw_params_get_start_threshold(params, &start_threshold);
++	__snd_pcm_sw_params_get_avail_min(params, &avail_min);
++	__snd_pcm_sw_params_get_start_threshold(params, &start_threshold);
+ 
+ 	len = avail_min;
+ 	len += (int)rec->slave_buffer_size - (int)io->buffer_size;
+@@ -542,7 +542,7 @@ static int a52_set_hw_constraint(struct 
+ 	if ((err = a52_slave_hw_params_half(rec)) < 0)
+ 		return err;
+ 
+-	snd_pcm_hw_params_get_buffer_size_max(rec->hw_params, &buffer_max);
++	__snd_pcm_hw_params_get_buffer_size_max(rec->hw_params, &buffer_max);
+ 	period_bytes = A52_FRAME_SIZE * 2 * rec->channels;
+ 	max_periods = buffer_max / A52_FRAME_SIZE;
+ 
+--- origsrc/alsa-plugins-1.0.19/oss/ctl_oss.c	2009-01-19 05:17:21.000000000 -0600
++++ src/alsa-plugins-1.0.19/oss/ctl_oss.c	2009-03-08 21:54:25.156250000 -0500
+@@ -26,7 +26,11 @@
+ #include <sys/ioctl.h>
+ #include <alsa/asoundlib.h>
+ #include <alsa/control_external.h>
++#ifdef __linux__
+ #include <linux/soundcard.h>
++#else
++#include <sys/soundcard.h>
++#endif
+ 
+ typedef struct snd_ctl_oss {
+ 	snd_ctl_ext_t ext;
+--- origsrc/alsa-plugins-1.0.19/oss/pcm_oss.c	2009-01-19 05:17:21.000000000 -0600
++++ src/alsa-plugins-1.0.19/oss/pcm_oss.c	2009-03-08 21:54:48.343750000 -0500
+@@ -22,7 +22,11 @@
+ #include <sys/ioctl.h>
+ #include <alsa/asoundlib.h>
+ #include <alsa/pcm_external.h>
++#ifdef __linux__
+ #include <linux/soundcard.h>
++#else
++#include <sys/soundcard.h>
++#endif
+ 
+ typedef struct snd_pcm_oss {
+ 	snd_pcm_ioplug_t io;
+--- origsrc/alsa-plugins-1.0.19/pph/Makefile.am	2009-01-19 05:17:21.000000000 -0600
++++ src/alsa-plugins-1.0.19/pph/Makefile.am	2009-03-08 21:56:24.953125000 -0500
+@@ -15,11 +15,11 @@ libasound_module_rate_speexrate_la_SOURC
+ endif
+ 
+ install-exec-hook:
+-	rm -f $(DESTDIR)@ALSA_PLUGIN_DIR@/libasound_module_rate_speexrate_*.so
+-	$(LN_S) libasound_module_rate_speexrate.so $(DESTDIR)@ALSA_PLUGIN_DIR@/libasound_module_rate_speexrate_best.so
+-	$(LN_S) libasound_module_rate_speexrate.so $(DESTDIR)@ALSA_PLUGIN_DIR@/libasound_module_rate_speexrate_medium.so
++	rm -f $(DESTDIR)@ALSA_PLUGIN_DIR@/cygasound_module_rate_speexrate_*.dll
++	$(LN_S) cygasound_module_rate_speexrate.dll $(DESTDIR)@ALSA_PLUGIN_DIR@/cygasound_module_rate_speexrate_best.dll
++	$(LN_S) cygasound_module_rate_speexrate.dll $(DESTDIR)@ALSA_PLUGIN_DIR@/cygasound_module_rate_speexrate_medium.dll
+ 
+ uninstall-hook:
+-	rm -f $(DESTDIR)@ALSA_PLUGIN_DIR@/libasound_module_rate_speexrate_*.so
++	rm -f $(DESTDIR)@ALSA_PLUGIN_DIR@/cygasound_module_rate_speexrate_*.dll
+ 
+ noinst_HEADERS = speex_resampler.h arch.h fixed_generic.h
+--- origsrc/alsa-plugins-1.0.19/rate/Makefile.am	2009-01-19 05:17:21.000000000 -0600
++++ src/alsa-plugins-1.0.19/rate/Makefile.am	2009-03-08 21:57:05.875000000 -0500
+@@ -9,11 +9,11 @@ libasound_module_rate_samplerate_la_SOUR
+ libasound_module_rate_samplerate_la_LIBADD = @ALSA_LIBS@ @samplerate_LIBS@
+ 
+ install-exec-hook:
+-	rm -f $(DESTDIR)@ALSA_PLUGIN_DIR@/libasound_module_rate_samplerate_*.so
+-	$(LN_S) libasound_module_rate_samplerate.so $(DESTDIR)@ALSA_PLUGIN_DIR@/libasound_module_rate_samplerate_best.so
+-	$(LN_S) libasound_module_rate_samplerate.so $(DESTDIR)@ALSA_PLUGIN_DIR@/libasound_module_rate_samplerate_medium.so
+-	$(LN_S) libasound_module_rate_samplerate.so $(DESTDIR)@ALSA_PLUGIN_DIR@/libasound_module_rate_samplerate_order.so
+-	$(LN_S) libasound_module_rate_samplerate.so $(DESTDIR)@ALSA_PLUGIN_DIR@/libasound_module_rate_samplerate_linear.so
++	rm -f $(DESTDIR)@ALSA_PLUGIN_DIR@/cygasound_module_rate_samplerate_*.dll
++	$(LN_S) cygasound_module_rate_samplerate.dll $(DESTDIR)@ALSA_PLUGIN_DIR@/cygasound_module_rate_samplerate_best.dll
++	$(LN_S) cygasound_module_rate_samplerate.dll $(DESTDIR)@ALSA_PLUGIN_DIR@/cygasound_module_rate_samplerate_medium.dll
++	$(LN_S) cygasound_module_rate_samplerate.dll $(DESTDIR)@ALSA_PLUGIN_DIR@/cygasound_module_rate_samplerate_order.dll
++	$(LN_S) cygasound_module_rate_samplerate.dll $(DESTDIR)@ALSA_PLUGIN_DIR@/cygasound_module_rate_samplerate_linear.dll
+ 
+ uninstall-hook:
+-	rm -f $(DESTDIR)$(libdir)/alsa-lib/libasound_module_rate_samplerate_*.so
++	rm -f $(DESTDIR)$(libdir)/alsa-lib/cygasound_module_rate_samplerate_*.dll
+--- origsrc/alsa-plugins-1.0.19/rate-lavc/Makefile.am	2009-01-19 05:17:21.000000000 -0600
++++ src/alsa-plugins-1.0.19/rate-lavc/Makefile.am	2009-03-08 21:56:43.687500000 -0500
+@@ -12,11 +12,11 @@ libasound_module_rate_lavcrate_la_LIBADD
+ noinst_HEADERS = gcd.h
+ 
+ install-exec-hook:
+-	rm -f $(DESTDIR)@ALSA_PLUGIN_DIR@/libasound_module_rate_lavcrate_*.so
+-	$(LN_S) libasound_module_rate_lavcrate.so $(DESTDIR)@ALSA_PLUGIN_DIR@/libasound_module_rate_lavcrate_higher.so
+-	$(LN_S) libasound_module_rate_lavcrate.so $(DESTDIR)@ALSA_PLUGIN_DIR@/libasound_module_rate_lavcrate_high.so
+-	$(LN_S) libasound_module_rate_lavcrate.so $(DESTDIR)@ALSA_PLUGIN_DIR@/libasound_module_rate_lavcrate_fast.so
+-	$(LN_S) libasound_module_rate_lavcrate.so $(DESTDIR)@ALSA_PLUGIN_DIR@/libasound_module_rate_lavcrate_faster.so
++	rm -f $(DESTDIR)@ALSA_PLUGIN_DIR@/cygasound_module_rate_lavcrate_*.dll
++	$(LN_S) cygasound_module_rate_lavcrate.dll $(DESTDIR)@ALSA_PLUGIN_DIR@/cygasound_module_rate_lavcrate_higher.dll
++	$(LN_S) cygasound_module_rate_lavcrate.dll $(DESTDIR)@ALSA_PLUGIN_DIR@/cygasound_module_rate_lavcrate_high.dll
++	$(LN_S) cygasound_module_rate_lavcrate.dll $(DESTDIR)@ALSA_PLUGIN_DIR@/cygasound_module_rate_lavcrate_fast.dll
++	$(LN_S) cygasound_module_rate_lavcrate.dll $(DESTDIR)@ALSA_PLUGIN_DIR@/cygasound_module_rate_lavcrate_faster.dll
+ 
+ uninstall-hook:
+-	rm -f $(DESTDIR)@ALSA_PLUGIN_DIR@/libasound_module_rate_lavcrate_*.so
++	rm -f $(DESTDIR)@ALSA_PLUGIN_DIR@/cygasound_module_rate_lavcrate_*.dll
